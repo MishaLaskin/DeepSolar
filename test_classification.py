@@ -25,11 +25,13 @@ from inception.slim import slim
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('ckpt_dir', 'inception_classification', "Directory for restoring trained model checkpoints.")
+tf.app.flags.DEFINE_string('ckpt_dir', 'inception_classification',
+                           "Directory for restoring trained model checkpoints.")
 
-BATCH_SIZE = 100
+BATCH_SIZE = 1
 IMAGE_SIZE = 299
 NUM_CLASSES = 2
+
 
 def load_image(path):
     img = skimage.io.imread(path)
@@ -39,13 +41,15 @@ def load_image(path):
 
     dir, filename = os.path.split(path)
 
-    skimage.io.imsave("%s/out_%s" % (dir, filename), resized_img);
+    skimage.io.imsave("%s/out_%s" % (dir, filename), resized_img)
     return resized_img
+
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i + n]
+
 
 def main():
 
@@ -54,7 +58,7 @@ def main():
     # List of all images to process
     filelist = [file.strip() for file in sys.stdin]
 
-    if len(filelist) < BATCH_SIZE :
+    if len(filelist) < BATCH_SIZE:
         BATCH_SIZE = len(filelist)
 
     # out CSV
@@ -63,10 +67,11 @@ def main():
 
     # build the tensorflow graph.
     with tf.Graph().as_default() as g:
-        img_placeholder = tf.placeholder(tf.float32, shape=[BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, 3])
-
+        img_placeholder = tf.placeholder(
+            tf.float32, shape=[BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, 3])
+        print(img_placeholder.shape)
         logits, _ = inception.inference(img_placeholder, NUM_CLASSES)
-
+        assert False
         saver = tf.train.Saver(tf.all_variables())
 
         ckpt = tf.train.get_checkpoint_state(FLAGS.ckpt_dir)
@@ -85,14 +90,19 @@ def main():
             for files_batch in chunks(filelist, BATCH_SIZE):
 
                 start_time = time.time()
-                
+
                 image_list = [load_image(file) for file in files_batch]
                 image_batch = np.array(image_list)
-                image_batch = np.reshape(image_batch, [BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, 3])
+                print(image_batch.shape)
+                assert False
+                image_batch = np.reshape(
+                    image_batch, [BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, 3])
 
-                score = sess.run(logits, feed_dict={img_placeholder: image_batch})
+                score = sess.run(logits, feed_dict={
+                                 img_placeholder: image_batch})
 
-                pos_score = np.exp(score[:, 1])/(np.exp(score[:, 1])+np.exp(score[:, 0]))
+                pos_score = np.exp(
+                    score[:, 1])/(np.exp(score[:, 1])+np.exp(score[:, 0]))
 
                 for i in xrange(BATCH_SIZE):
 
@@ -102,6 +112,7 @@ def main():
                 duration = time.time() - start_time
 
                 print("Batch done Duration: " + str(duration))
+
 
 if __name__ == '__main__':
     main()
